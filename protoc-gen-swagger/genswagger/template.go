@@ -109,6 +109,12 @@ func queryParams(message *descriptor.Message, field *descriptor.Field, prefix st
 		}
 	}
 
+	msgRequired := make([]string, 0)
+	msgSchema, err := extractSchemaOptionFromMessageDescriptor(message.DescriptorProto)
+	if err == nil && msgSchema != nil {
+		msgRequired = msgSchema.JsonSchema.Required
+	}
+
 	isEnum := field.GetType() == pbdescriptor.FieldDescriptorProto_TYPE_ENUM
 	items := schema.Items
 	if schema.Type != "" || isEnum {
@@ -125,7 +131,13 @@ func queryParams(message *descriptor.Message, field *descriptor.Field, prefix st
 
 		// verify if the field is required
 		required := false
-		for _, fieldName := range schema.Required {
+		for _, fieldName := range schema.Required { // check against field schema
+			if fieldName == field.GetName() {
+				required = true
+				break
+			}
+		}
+		for _, fieldName := range msgRequired { // check against containg message's schema
 			if fieldName == field.GetName() {
 				required = true
 				break
